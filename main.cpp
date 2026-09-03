@@ -212,6 +212,7 @@ PYBIND11_MODULE(e4dccommlib_python_wrapper, m) {
         .value("DevicePatchliner_EL07ab_artix7_V02", DevicePatchliner_EL07ab_artix7_V02)
         .value("DevicePatchliner_EL07cd_artix7_V01", DevicePatchliner_EL07cd_artix7_V01)
         .value("DevicePatchliner_EL07cd_artix7_V02", DevicePatchliner_EL07cd_artix7_V02)
+        .value("DevicePatchliner_EL07e_artix7_V02", DevicePatchliner_EL07e_artix7_V02)
         .value("DeviceSyncropatch_EL07ab_V01", DeviceSyncropatch_EL07ab_V01)
         .value("DeviceUnknown", DeviceUnknown)
         .value("DevicesNum", DevicesNum)
