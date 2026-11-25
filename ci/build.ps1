@@ -49,7 +49,7 @@ $OutDir    = [IO.Path]::GetFullPath((Join-Path $root $OutDir))
 # 1. Toolchain: the exact Python to build against + pybind11's CMake package.
 Invoke-Native uv @('python', 'install', $PythonVersion) | Out-Host
 $python      = (Invoke-Native uv @('python', 'find', $PythonVersion) | Select-Object -Last 1).Trim()
-$pybind11Dir = (Invoke-Native uvx @('--from', "pybind11==$Pybind11Version", 'pybind11-config', '--cmakedir') | Select-Object -Last 1).Trim()
+$pybind11Dir = (Invoke-Native uvx @('--from', "pybind11==$Pybind11Version", 'pybind11-config', '--cmakedir') | Select-Object -Last 1).Trim().Trim('"')
 Write-Host "Python   : $python"
 Write-Host "pybind11 : $pybind11Dir"
 

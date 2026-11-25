@@ -20,7 +20,8 @@ find_package(pybind11 CONFIG REQUIRED)
 
 # Backwards compatible with the old env-var based local setup.
 if(DEFINED ENV{E4DCCOMMLIB_PATH})
-    list(APPEND CMAKE_PREFIX_PATH "$ENV{E4DCCOMMLIB_PATH}")
+    cmake_path(CONVERT "$ENV{E4DCCOMMLIB_PATH}" TO_CMAKE_PATH_LIST _e4dccommlib_prefix NORMALIZE)
+    list(APPEND CMAKE_PREFIX_PATH "${_e4dccommlib_prefix}")
 endif()
 find_package(e4dccommlib REQUIRED CONFIG)
 
