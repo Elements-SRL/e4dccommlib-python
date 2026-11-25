@@ -5,57 +5,41 @@ project(e4dccommlib_python_wrapper
     LANGUAGES CXX
 )
 
-include(CMakePackageConfigHelpers)
-include(GNUInstallDirs)
-
-# Library
-
-add_library(e4dccommlib_python_wrapper SHARED
-    main.cpp
-)
-
-add_library(e4dccommlib_python_wrapper::e4dccommlib_python_wrapper ALIAS e4dccommlib_python_wrapper)
-
-# C++ standard
-# e4dccommlib itself requires C++20 (see its own CMakeLists.txt), so the
-# wrapper is built with the same standard.
-
-set_target_properties(e4dccommlib_python_wrapper PROPERTIES
-    CXX_STANDARD 20
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-    SUFFIX ".pyd"
-    PREFIX ""     # so the output is e4dccommlib_python_wrapper.pyd, not libe4dccommlib_python_wrapper.pyd
-)
-
-# Headers
-
-cmake_path(SET PYTHON_3_11_7_PATH_CMAKE "$ENV{PYTHON_3_11_7_PATH}")
-cmake_path(SET PYBIND_11_PATH_CMAKE "$ENV{PYBIND_11_PATH}")
-
-target_include_directories(e4dccommlib_python_wrapper
-    PUBLIC
-    $<BUILD_INTERFACE:${PYTHON_3_11_7_PATH_CMAKE}/include>
-    $<BUILD_INTERFACE:${PYBIND_11_PATH_CMAKE}/include>
-)
-
 # Dependencies
+#
+# The Python interpreter decides the ABI the module is built for: pass
+# -DPython_EXECUTABLE=<path to python.exe> to pick the version (3.10, 3.11, ...).
+# pybind11 then names the output with the interpreter's EXT_SUFFIX, e.g.
+#   e4dccommlib_python_wrapper.cp310-win_amd64.pyd
+#   e4dccommlib_python_wrapper.cp311-win_amd64.pyd
+# so modules for different Python versions can live side by side in one folder
+# and each interpreter imports only the one built for it.
 
-cmake_path(SET E4DCCOMMLIB_PATH_CMAKE "$ENV{E4DCCOMMLIB_PATH}")
-list(APPEND CMAKE_PREFIX_PATH "${E4DCCOMMLIB_PATH_CMAKE}")
+find_package(Python 3.10 REQUIRED COMPONENTS Interpreter Development.Module)
+find_package(pybind11 CONFIG REQUIRED)
 
+# Backwards compatible with the old env-var based local setup.
+if(DEFINED ENV{E4DCCOMMLIB_PATH})
+    list(APPEND CMAKE_PREFIX_PATH "$ENV{E4DCCOMMLIB_PATH}")
+endif()
 find_package(e4dccommlib REQUIRED CONFIG)
 
-target_link_libraries(e4dccommlib_python_wrapper
-    PUBLIC
-    e4dccommlib::e4dccommlib
+# Module
+
+pybind11_add_module(e4dccommlib_python_wrapper main.cpp)
+
+# e4dccommlib itself requires C++20 (see its own CMakeLists.txt).
+target_compile_features(e4dccommlib_python_wrapper PRIVATE cxx_std_20)
+set_target_properties(e4dccommlib_python_wrapper PROPERTIES CXX_EXTENSIONS OFF)
+
+# NOTE: e4dccommlib declares E4DCCOMMLIB_STATIC as a PUBLIC compile definition,
+# so linking e4dccommlib::e4dccommlib propagates it transitively - do NOT
+# redefine it here, and do NOT define E4DCCOMMLIB_LIBRARY (that switch is for
+# building e4dccommlib itself, not for consuming it).
+target_link_libraries(e4dccommlib_python_wrapper PRIVATE e4dccommlib::e4dccommlib)
+
+# `cmake --install <build> --prefix <dir>` drops the .pyd straight into <dir>.
+install(TARGETS e4dccommlib_python_wrapper
+    LIBRARY DESTINATION .
+    RUNTIME DESTINATION .
 )
-
-# NOTE: e4dccommlib's own CMakeLists.txt declares E4DCCOMMLIB_STATIC as a
-# PUBLIC compile definition on the e4dccommlib target itself. Linking
-# e4dccommlib::e4dccommlib above therefore already propagates
-# -DE4DCCOMMLIB_STATIC to this target transitively - do NOT redefine it here,
-# and do NOT define E4DCCOMMLIB_LIBRARY (that switch is for building
-# e4dccommlib itself, not for consuming it).
-
-target_link_libraries(e4dccommlib_python_wrapper PUBLIC "${PYTHON_3_11_7_PATH_CMAKE}/libs/python311.lib")
