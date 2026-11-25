@@ -65,4 +65,7 @@ Invoke-CMakeProject -Source $root `
                     -Defines @("-DPython_EXECUTABLE=$python", "-Dpybind11_DIR=$pybind11Dir", "-DCMAKE_PREFIX_PATH=$libPrefix")
 
 # 4. Smoke test: the target interpreter must import the module it was built for.
-Invoke-Native $python @('-c', "import sys; sys.path.insert(0, r'$OutDir'); import e4dccommlib_python_wrapper as m; print('import OK:', m.__file__)") | Out-Host
+#    okFrontPanel.dll is not shipped: load it from the FrontPanel install
+#    (Python does not search the PATH for DLLs).
+$frontPanelBin = Join-Path $env:FRONT_PANEL_PATH 'bin\x64'
+Invoke-Native $python @('-c', "import os, sys; os.add_dll_directory(r'$frontPanelBin'); sys.path.insert(0, r'$OutDir'); import e4dccommlib_python_wrapper as m; print('import OK:', m.__file__)") | Out-Host
