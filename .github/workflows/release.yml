@@ -1,0 +1,86 @@
+name: Build & release Python wrapper
+
+# Triggered by e4dccommlib's "Trigger Python wrapper build" workflow on every
+# e4dccommlib tag, or by hand from the Actions tab (e.g. to rebuild a tag).
+on:
+  repository_dispatch:
+    types: [e4dccommlib-released]
+  workflow_dispatch:
+    inputs:
+      e4dccommlib_tag:
+        description: e4dccommlib tag to build against (e.g. v1.0.8)
+        required: true
+
+permissions:
+  contents: write # create the release and upload its assets
+
+env:
+  E4DCCOMMLIB_TAG: ${{ github.event.client_payload.tag || inputs.e4dccommlib_tag }}
+
+concurrency:
+  group: release-${{ github.event.client_payload.tag || inputs.e4dccommlib_tag }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build (Python ${{ matrix.python }})
+    runs-on: [self-hosted, Windows, X64]
+    strategy:
+      matrix:
+        python: ['3.10', '3.11']
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - name: Checkout wrapper
+        uses: actions/checkout@v7
+
+      - name: Checkout e4dccommlib ${{ env.E4DCCOMMLIB_TAG }}
+        uses: actions/checkout@v7
+        with:
+          repository: Elements-SRL/e4dccommlib
+          ref: ${{ env.E4DCCOMMLIB_TAG }}
+          token: ${{ secrets.E4DCCOMMLIB_READ_TOKEN }}
+          path: external/e4dccommlib
+
+      - name: Build
+        run: ./ci/build.ps1 -PythonVersion ${{ matrix.python }} -E4dcCommlibSource external/e4dccommlib -OutDir dist
+
+      - name: Upload .pyd
+        uses: actions/upload-artifact@v7
+        with:
+          name: pyd-py${{ matrix.python }}
+          path: dist/*.pyd
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub release
+    needs: build
+    runs-on: [self-hosted, Windows, X64]
+    steps:
+      - name: Collect .pyd files
+        uses: actions/download-artifact@v8
+        with:
+          pattern: pyd-*
+          merge-multiple: true
+          path: dist
+
+      - name: Create / update release ${{ env.E4DCCOMMLIB_TAG }}
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ env.E4DCCOMMLIB_TAG }}
+          name: e4dccommlib-python ${{ env.E4DCCOMMLIB_TAG }}
+          target_commitish: ${{ github.sha }}
+          files: dist/*.pyd
+          fail_on_unmatched_files: true
+          body: |
+            Python wrapper for [e4dccommlib ${{ env.E4DCCOMMLIB_TAG }}](https://github.com/Elements-SRL/e4dccommlib/releases/tag/${{ env.E4DCCOMMLIB_TAG }}).
+
+            | Python | File |
+            |--------|------|
+            | 3.10   | `e4dccommlib_python_wrapper.cp310-win_amd64.pyd` |
+            | 3.11   | `e4dccommlib_python_wrapper.cp311-win_amd64.pyd` |
+
+            Drop the file(s) next to your script (or anywhere on `sys.path`) and
+            `import e4dccommlib_python_wrapper`: each interpreter loads only the
+            file built for its own version, so both can live in the same folder.
