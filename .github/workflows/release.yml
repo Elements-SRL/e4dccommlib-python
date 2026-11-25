@@ -43,6 +43,11 @@ jobs:
           token: ${{ secrets.E4DCCOMMLIB_READ_TOKEN }}
           path: external/e4dccommlib
 
+      # uv lives in the runner's folder: the runner service (NETWORK SERVICE)
+      # cannot see a per-user install.
+      - name: Use the runner's uv
+        run: Add-Content $env:GITHUB_PATH 'C:\actions-runner\tools'
+
       - name: Build
         run: ./ci/build.ps1 -PythonVersion ${{ matrix.python }} -E4dcCommlibSource external/e4dccommlib -OutDir dist
 
