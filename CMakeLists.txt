@@ -44,3 +44,8 @@ install(TARGETS e4dccommlib_python_wrapper
     LIBRARY DESTINATION .
     RUNTIME DESTINATION .
 )
+
+# okFrontPanel.dll is needed to import the module and Python does not search the
+# PATH for it, so it ships next to the .pyd. The FTDI libraries are loaded at
+# runtime by ftdi_utils and are not needed to import the module.
+install(IMPORTED_RUNTIME_ARTIFACTS FrontPanel::FrontPanel DESTINATION .)

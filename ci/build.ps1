@@ -35,7 +35,7 @@ function Invoke-Native {
 
 function Invoke-CMakeProject {
     param([string] $Source, [string] $Build, [string] $Prefix, [string[]] $Defines = @())
-    Invoke-Native cmake (@('-S', $Source, '-B', $Build, "-DCMAKE_BUILD_TYPE=$Config") + $Defines) | Out-Host
+    Invoke-Native cmake (@('-S', $Source, '-B', $Build, "-DCMAKE_BUILD_TYPE=$Config", "-DCMAKE_CONFIGURATION_TYPES=$Config") + $Defines) | Out-Host
     Invoke-Native cmake @('--build', $Build, '--config', $Config, '--parallel') | Out-Host
     Invoke-Native cmake @('--install', $Build, '--config', $Config, '--prefix', $Prefix) | Out-Host
 }
